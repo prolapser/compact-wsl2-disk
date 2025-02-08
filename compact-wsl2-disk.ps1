@@ -7,7 +7,11 @@ $wsl_folders = @(
     # WSL OSes from the Windows Store
     "$env:LOCALAPPDATA\Packages",
     # The Docker WSL files
-    "$env:LOCALAPPDATA\Docker"
+    "$env:LOCALAPPDATA\Docker",
+    # Rancher Desktop files
+    "$env:LOCALAPPDATA\rancher-desktop",
+    # System drive WSL folder
+    "$env:SystemDrive\WSL"
 )
 # Allow user definitions via an environment variable, WSL_FOLDERS
 if (Test-Path env:WSL_FOLDERS) {
@@ -45,13 +49,16 @@ foreach ($file in $files) {
 	write-output "Length: $($file.Length/1MB) MB"
 	write-output "Compacting disk (starting diskpart)"
 
+  $diskpartCommandsFile = New-TemporaryFile
 @"
 select vdisk file=$disk
 attach vdisk readonly
 compact vdisk
 detach vdisk
 exit
-"@ | diskpart
+"@ | Out-File -FilePath $diskpartCommandsFile
+    diskpart /s $diskpartCommandsFile
+    Remove-Item $diskpartCommandsFile
 
 	write-output ""
 	write-output "Success. Compacted $disk."
